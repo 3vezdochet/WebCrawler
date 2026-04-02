@@ -1,0 +1,16 @@
+# Goland settings
+.idea/
+
+# Exercises
+Edu/
+
+# Compiled binary files
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+
+# Files from enviroment
+*.env
