@@ -46,7 +46,7 @@ go run cmd/crawler/main.go
 ## 🗺 Roadmap
 
 - [ ] Implement a robust HTTP client with timeouts (`internal/fetcher`).
-- [ ] Build a thread-safe URL storage using `sync.RWMutex` (`internal/storage`).
+- [ ] Build a thread-safe URL storage using `sync.Mutex` (`internal/storage`).
 - [ ] Implement HTML parsing to extract links (`internal/parser`).
 - [ ] Tie components together using a Worker Pool and `sync.WaitGroup` in `main`.
 - [ ] Add graceful shutdown (context cancellation).
