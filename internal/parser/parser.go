@@ -32,7 +32,7 @@ func ExtractLinks(body io.ReadCloser, baseURL string) []string {
 			if token.Data == "a" {
 				for _, attr := range token.Attr {
 					if attr.Key == "href" {
-						link := cleanURL(attr.Key, parsedBaseURL)
+						link := cleanURL(attr.Val, parsedBaseURL)
 						if link != "" {
 							links = append(links, link)
 						}
