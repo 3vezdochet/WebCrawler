@@ -1,10 +1,11 @@
 package parser
 
 import (
-	"golang.org/x/net/html"
 	"io"
 	"net/url"
 	"strings"
+
+	"golang.org/x/net/html"
 )
 
 func ExtractLinks(body io.ReadCloser, baseURL string) []string {
