@@ -2,46 +2,58 @@ package main
 
 import (
 	"fmt"
-	"net"
+	"sync"
+
+	"WebCrawler/internal/fetcher"
+	"WebCrawler/internal/parser"
+	"WebCrawler/internal/storage"
 )
 
-//func main() {
-//	httpRequest := "GET / HTTP/1.1\n" +
-//		"Host: golang.org\n\n"
-//	conn, err := net.Dial("tcp", "golang.org:80")
-//	if err != nil {
-//		fmt.Println(err)
-//		return
-//	}
-//	defer conn.Close()
-//
-//	if _, err = conn.Write([]byte(httpRequest)); err != nil {
-//		fmt.Println(err)
-//		return
-//	}
-//
-//	io.Copy(os.Stdout, conn)
-//	fmt.Println("Done")
-//}
-
 func main() {
-	// Server
-	message := "Hello, I am a server"
-	listener, err := net.Listen("tcp", ":4545")
+	seedURL := "https://golang.org/"
+	numWorkers := 10
 
-	if err != nil {
-		fmt.Println(err)
-		return
+	store := storage.NewURLStorage()
+	queue := make(chan string, 1000)
+	var wg sync.WaitGroup
+
+	for i := 1; i <= numWorkers; i++ {
+		go worker(i, queue, store, &wg)
 	}
-	defer listener.Close()
-	fmt.Println("Server is listening...")
-	for {
-		conn, err := listener.Accept()
+
+	store.Add(seedURL)
+	wg.Add(1)
+	queue <- seedURL
+
+	wg.Wait()
+	close(queue)
+
+	fmt.Println("Crawling completed")
+}
+
+func worker(id int, queue chan string, store *storage.URLStorage, wg *sync.WaitGroup) {
+	for targetURL := range queue {
+		fmt.Printf("[Worker %d] Fetching: %s\n", id, targetURL)
+		body, err := fetcher.Fetch(targetURL)
 		if err != nil {
-			fmt.Println(err)
-			return
+			fmt.Printf("[Worker %d] Error fetching %s: %v\n", id, targetURL, err)
+			wg.Done()
+			continue
 		}
-		conn.Write([]byte(message))
-		conn.Close()
+
+		links := parser.ExtractLinks(body, targetURL)
+		body.Close()
+
+		for _, link := range links {
+			if ok := store.Add(link); ok {
+				wg.Add(1)
+				go func(l string) {
+					queue <- l
+				}(link)
+			}
+
+		}
+
+		wg.Done()
 	}
 }
