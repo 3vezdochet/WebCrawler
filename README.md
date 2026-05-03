@@ -38,20 +38,19 @@ webcrawler/
 * Go 1.22 or higher
 
 ### Running the application
-*(Instructions will be added as the CLI is implemented)*
 ```bash
 go run cmd/crawler/main.go
 ```
 
 ## 🗺 Roadmap
 
-- [ ] Implement a robust HTTP client with timeouts (`internal/fetcher`).
-- [ ] Build a thread-safe URL storage using `sync.Mutex` (`internal/storage`).
-- [ ] Implement HTML parsing to extract links (`internal/parser`).
-- [ ] Tie components together using a Worker Pool and `sync.WaitGroup` in `main`.
-- [ ] Add graceful shutdown (context cancellation).
-- [ ] Implement Rate Limiting to prevent server overload.
+- [x] Implement a robust HTTP client with timeouts (`internal/fetcher`).
+- [x] Build a thread-safe URL storage using `sync.Mutex` (`internal/storage`).
+- [x] Implement HTML parsing to extract links (`internal/parser`).
+- [x] Tie components together using a Worker Pool and `sync.WaitGroup` in `main`.
+- [x] Add graceful shutdown (context cancellation).
+- [x] Implement Rate Limiting to prevent server overload.
 
 ## 🛠 Tech Stack
 *   **Language:** Go
-*   **Libraries:** Standard library (`net/http`, `sync`, `context`)
+*   **Libraries:** Standard library (`net/http`, `sync`, `context`, `os`)
