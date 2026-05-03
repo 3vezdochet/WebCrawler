@@ -49,8 +49,10 @@ func main() {
 		fmt.Println("Tree saved successfully!")
 	}
 
-	fmt.Println("Structure of found URLs:")
-	store.PrintTree("root", "", true)
+	defer func() {
+		fmt.Println("Emergency saving...")
+		store.ExportToJSON("tree_emergency.json")
+	}()
 }
 
 func worker(

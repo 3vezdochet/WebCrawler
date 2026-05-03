@@ -2,7 +2,6 @@ package storage
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"sync"
 )
@@ -46,38 +45,4 @@ func (u *URLStorage) ExportToJSON(filename string) error {
 	}
 
 	return os.WriteFile(filename, data, 0644)
-}
-
-func (u *URLStorage) PrintTree(root string, indent string, isLast bool) {
-	u.mu.Lock()
-	nodes := u.Graph[root]
-	u.mu.Unlock()
-
-	marker := "├── "
-	if isLast {
-		marker = "└── "
-	}
-
-	// Print current node (except root)
-	if root != "root" {
-		fmt.Print(indent)
-		fmt.Print(marker)
-		fmt.Print(root)
-	}
-
-	// Calculate new marker for children
-	newIndent := indent
-	if root != "root" {
-		if isLast {
-			newIndent += "    "
-		} else {
-			newIndent += "│   "
-		}
-	}
-
-	// Recursive traversal
-	for i, child := range nodes {
-		lastChild := i == len(nodes)-1
-		u.PrintTree(child, newIndent, lastChild)
-	}
 }

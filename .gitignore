@@ -17,3 +17,4 @@ bin/
 
 # Parsed tree of URLs
 tree.json
+tree_emergency.json
