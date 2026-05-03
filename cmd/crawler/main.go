@@ -30,6 +30,16 @@ func main() {
 	queue := make(chan string, 1000)
 	var wg sync.WaitGroup
 
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Printf("\n[EMERGENCY] Recovered from panic: %v\n", r)
+		}
+		fmt.Println("[System] Executing final data save...")
+		if err := store.ExportToJSON("tree_emergency.json"); err != nil {
+			fmt.Printf("Error during emergency save %v\n", err)
+		}
+	}()
+
 	for i := 1; i <= numWorkers; i++ {
 		go worker(ctx, cancel, i, queue, store, &wg, rateLimit, &pagesParsed, maxPages)
 	}
@@ -48,11 +58,6 @@ func main() {
 	} else {
 		fmt.Println("Tree saved successfully!")
 	}
-
-	defer func() {
-		fmt.Println("Emergency saving...")
-		store.ExportToJSON("tree_emergency.json")
-	}()
 }
 
 func worker(
