@@ -1,7 +1,10 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"os"
+	"os/signal"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -16,6 +19,10 @@ func main() {
 	numWorkers := 10
 	rateLimit := time.Tick(100 * time.Millisecond)
 
+	// Context for Graceful Shutdown
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancel()
+
 	var pagesParsed atomic.Int32
 	maxPages := int32(100)
 
@@ -24,7 +31,7 @@ func main() {
 	var wg sync.WaitGroup
 
 	for i := 1; i <= numWorkers; i++ {
-		go worker(i, queue, store, &wg, rateLimit, &pagesParsed, maxPages)
+		go worker(ctx, cancel, i, queue, store, &wg, rateLimit, &pagesParsed, maxPages)
 	}
 
 	store.Add("root", seedURL)
@@ -35,12 +42,20 @@ func main() {
 	close(queue)
 
 	fmt.Println("Crawling completed")
+	fmt.Println("Saving URL tree to tree.json...")
+	if err := store.ExportToJSON("tree.json"); err != nil {
+		fmt.Printf("Error saving JSON: %v\n", err)
+	} else {
+		fmt.Println("Tree saved successfully!")
+	}
 
 	fmt.Println("Structure of found URLs:")
 	store.PrintTree("root", "", true)
 }
 
 func worker(
+	ctx context.Context,
+	cancel context.CancelFunc,
 	id int,
 	queue chan string,
 	store *storage.URLStorage,
@@ -50,8 +65,16 @@ func worker(
 	maxPages int32,
 ) {
 	for targetURL := range queue {
-		fmt.Printf("[Worker %d] Fetching: %s\n", id, targetURL)
+		// Queue pop: if pulled cancel signal, pop WaitGroup and grab new URL
+		// without work. Save from Deadlock
+		if ctx.Err() != nil {
+			wg.Done()
+			continue
+		}
+
 		<-rateLimit
+
+		fmt.Printf("[Worker %d] Fetching: %s\n", id, targetURL)
 		body, err := fetcher.Fetch(targetURL)
 		if err != nil {
 			fmt.Printf("[Worker %d] Error fetching %s: %v\n", id, targetURL, err)
@@ -62,23 +85,26 @@ func worker(
 		currentCount := pagesParsed.Add(1)
 		if currentCount >= maxPages {
 			fmt.Println("[Limit reached] Stopping crawler...")
+			cancel() // Call cancel context for all goroutines
 		}
 
 		links := parser.ExtractLinks(body, targetURL)
 		if err := body.Close(); err != nil {
-			fmt.Printf("Body closing error: %s\n", err)
+			fmt.Printf("Body closing error: %v\n", err)
 		}
 
 		for _, link := range links {
 			if ok := store.Add(targetURL, link); ok {
 				wg.Add(1)
 				go func(l string) {
-					queue <- l
+					select {
+					case queue <- l:
+					case <-ctx.Done():
+						wg.Done()
+					}
 				}(link)
 			}
-
 		}
-
 		wg.Done()
 	}
 }
